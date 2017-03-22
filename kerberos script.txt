@@ -1,0 +1,86 @@
+1)To install packages for a Kerberos server:    yum -y install krb5-server krb5-libs krb5-auth-dialog krb5-workstation
+
+  To install packages for a Kerberos client:     yum -y install krb5-workstation krb5-libs krb5-auth-dialog
+
+2)Server:         
+vi /var/kerberos/krb5kdc/kdc.conf
+
+[kdcdefaults]
+ kdc_ports = 88
+ kdc_tcp_ports = 88
+
+[realms]
+  CLAIRVOYANT.COM = {
+  #master_key_type = aes256-cts
+  acl_file = /var/kerberos/krb5kdc/kadm5.acl
+  dict_file = /usr/share/dict/words
+  admin_keytab = /var/kerberos/krb5kdc/kadm5.keytab
+  supported_enctypes = aes256-cts:normal aes128-cts:normal des3-hmac-sha1:normal arcfour-hmac:normal des-hmac-sha1:normal des-cbc-md5:normal des-cbc-crc:normal
+  max_life = 1d
+  max_renewable_life = 7d
+ }
+
+
+3)All Clients:      vi /etc/krb5.conf 
+
+[logging]
+ default = FILE:/var/log/krb5libs.log
+ kdc = FILE:/var/log/krb5kdc.log
+ admin_server = FILE:/var/log/kadmind.log
+
+[libdefaults]
+ default_realm = CLAIRVOYANT.COM
+ dns_lookup_realm = false
+ dns_lookup_kdc = false
+ ticket_lifetime = 24h
+ renew_lifetime = 7d
+ forwardable = true
+ udp_preference_limit = 1
+ default_tgs_enctypes = arcfour-hmac
+ default_tkt_enctypes = arcfour-hmac 
+
+[realms] 
+  CLAIRVOYANT.COM = {
+  kdc = SERVER_HOST NAME(HOSTNAME -F)
+  admin_server =  SERVER_HOST NAME(HOSTNAME -F )
+ }
+
+[domain_realm]
+   .example.com = PUNE.COM
+   example.com =  PUNE.COM
+
+
+4) DATABASE ON SERVER     :       kdb5_util create -s
+
+Enter KDC database master key:
+Re-enter KDC database master key to verify:
+
+
+
+5) SERVER add cloudera-scm principal/(USER) Cloudera Manager later to manage Hadoop principals   USE : kadmin.local
+
+kadmin.local:  addprinc cloudera-scm@pune   WE WILL USE THIS PRINCIPAL PASSWORD TO IMPORT THE KDC  CREDENTIAL (PASSWORD IS V.IMP)
+
+6)  vi /var/kerberos/krb5kdc/kadm5.acl 
+*/admin@pune *
+cloudera-scm@pune admilc
+
+
+7)Adds the password policy to the database
+kadmin.local:  addpol admin
+kadmin.local:  addpol users
+kadmin.local:  addpol hosts
+kadmin.local:  exit
+
+
+8)service krb5kdc start
+service kadmin start
+
+kadmin.local: addprinc hdfs@pune
+9)create linux user
+10)kinit hdfs -k -t /unix-path/hdfs.keytab
+ hadoop fs -mkdir /user/mohsin
+ hadoop fs -chown mohsin:mohsin /user/mohsin
+
+
+
